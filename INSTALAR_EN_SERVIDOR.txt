@@ -1,0 +1,54 @@
+CARGA DIARIA DEL DOLAR DIVISA BNA - INSTALACION EN UN SERVIDOR
+==============================================================
+
+Inserta todos los dias habiles a las 15:30 el dolar divisa (venta) de BNA en
+usuarios.caja_cambio de la base Lodiser, con moneda 'DIV'.
+En el servidor corre como SYSTEM: no necesita que nadie tenga la sesion iniciada.
+
+
+REQUISITOS DEL SERVIDOR
+-----------------------
+- Que quede siempre prendido.
+- Salida a internet hacia https://www.bna.com.ar
+- Cliente ODBC de SQL Anywhere 17 instalado.
+- Acceso a 10.0.20.10, puerto 49999 (servidor Lodiser17).
+
+
+PASOS
+-----
+1. Copiar al servidor estos dos archivos, en una misma carpeta:
+     cargar_dolar_divisa.ps1
+     instalar_en_servidor.ps1
+
+2. Crear el DSN de SISTEMA "LodiserIA" (no de usuario):
+     - Abrir C:\Windows\SysWOW64\odbcad32.exe
+     - Pestana "DSN de sistema" > Agregar > SQL Anywhere 17
+     - ODBC     > Data source name: LodiserIA
+     - Login    > Usuario: ia, con su contrasena (tiene que quedar guardada)
+     - Database > Server name: Lodiser17    Database name: Lodiser
+     - Network  > TCP/IP: host=10.0.20.10;Port=49999
+     - Test Connection > Aceptar
+
+3. Abrir PowerShell como administrador, ir a la carpeta y verificar:
+     powershell -ExecutionPolicy Bypass -File .\instalar_en_servidor.ps1 -SoloVerificar
+   Tienen que salir los tres [OK].
+
+4. Instalar:
+     powershell -ExecutionPolicy Bypass -File .\instalar_en_servidor.ps1
+   Copia el script a C:\Scripts\dolar_divisa_bna y crea la tarea
+   "Dolar divisa BNA a caja_cambio" (lunes a viernes 15:30, como SYSTEM).
+
+5. Probarla (opcional). Si la fila DIV del dia ya existe, solo deja anotado que ya estaba:
+     Start-ScheduledTask -TaskName 'Dolar divisa BNA a caja_cambio'
+   y revisar C:\Scripts\dolar_divisa_bna\cargar_dolar_divisa.log
+
+6. En la notebook, deshabilitar la tarea para que no corran las dos:
+     Programador de tareas > "Dolar divisa BNA a caja_cambio" > Deshabilitar
+   (si corrieran las dos no se duplica la fila, pero conviene tener una sola)
+
+
+QUE HACE CADA DIA
+-----------------
+- Si la fecha que muestra BNA no es la de hoy (feriado), no inserta.
+- Si ya hay una fila DIV con la fecha de hoy, no inserta otra.
+- Todo queda registrado en cargar_dolar_divisa.log, junto al script.
